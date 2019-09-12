@@ -433,6 +433,9 @@ MainWindow::MainWindow()
 
     LOG_DEBUG() << "FilterController";
     m_filterController = new FilterController(this);
+
+    connect(m_filterController,SIGNAL(filtersInfoLoaded()),this,SLOT(onFiltersInfoLoaded()));
+
     m_propertiesVideoFilterDock = new FiltersDock(m_filterController->metadataModel(), m_filterController->attachedModel(),true, this);
     m_propertiesVideoFilterDock->setExtraQmlContextProperty("mainwindow", this);
     m_propertiesVideoFilterDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
@@ -613,12 +616,12 @@ MainWindow::MainWindow()
     LOG_DEBUG() << "VideoFilterDock";
     m_resourceVideoFilterDock = RDG_CreateVideoFilterDock(&MainInterface::singleton());
     addResourceDock(m_resourceVideoFilterDock, tr("Video Filter"), QIcon(":/icons/light/32x32/video_filter.png"), QIcon(":/icons/light/32x32/video_filter_on.png"));
-    RDG_SetVideoFiltersInfo( m_filterController->getVideoFiltersInfo());
+//    RDG_SetVideoFiltersInfo( m_filterController->getVideoFiltersInfo());
 
     LOG_DEBUG() << "AudioFilterDock";
     m_resourceAudioFilterDock = RDG_CreateAudioFilterDock(&MainInterface::singleton());
     addResourceDock(m_resourceAudioFilterDock, tr("Audio Filter"), QIcon(":/icons/light/32x32/audio_filter.png"), QIcon(":/icons/light/32x32/audio_filter_on.png"));
-    RDG_SetAudioFiltersInfo(m_filterController->getAudioFiltersInfo());
+//    RDG_SetAudioFiltersInfo(m_filterController->getAudioFiltersInfo());
 
     LOG_DEBUG() << "TextDock";
     m_resourceTextDock = RDG_CreateTextDock(&MainInterface::singleton());
@@ -3127,7 +3130,7 @@ QWidget *MainWindow::loadProducerWidget(Mlt::Producer* producer)
         w = new PlasmaWidget(this);
     else if (service == "frei0r.test_pat_B")
         w = new ColorBarsWidget(this);
-    else if (service == "webvfx")
+    else if (service.contains("webvfx"))
         w = new WebvfxProducer(this);
     else if (service == "tone")
         w = new ToneProducerWidget(this);
@@ -3136,6 +3139,8 @@ QWidget *MainWindow::loadProducerWidget(Mlt::Producer* producer)
         int clipIndex = m_timelineDock->selection().at(0);
         w = new LumaMixTransition(producer->parent(), trackIndex, clipIndex, this);
         scrollArea->setWidget(w);
+        // 转场就显示属性界面
+        showPropertiesDock();
         return w;
     } else if (playlist_type == producer->type()) {
         w = new TrackPropertiesWidget(*producer, this);
@@ -4748,4 +4753,10 @@ void MainWindow::on_actionVideoMode_triggered()
     videoModeSettingsDialog.setWindowModality(QmlApplication::dialogModality());
 
     videoModeSettingsDialog.exec();
+}
+
+void MainWindow::onFiltersInfoLoaded()
+{
+    RDG_SetVideoFiltersInfo(m_filterController->getVideoFiltersInfo());
+    RDG_SetAudioFiltersInfo(m_filterController->getAudioFiltersInfo());
 }

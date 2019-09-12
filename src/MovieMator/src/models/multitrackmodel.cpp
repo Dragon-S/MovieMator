@@ -583,13 +583,16 @@ int MultitrackModel::trimClipIn(int trackIndex, int clipIndex, int delta, bool r
         int out = info->frame_out;
         playlist.resize_clip(clipIndex, in, out);
 
+        info->producer->set(kFilterInProperty, in);
+        info->producer->set(kFilterOutProperty, out);
+
         // Adjust all filters that have an explicit duration.
         int n = info->producer->filter_count();
         for (int j = 0; j < n; j++) {
             Mlt::Filter* filter = info->producer->filter(j);
             if (filter && filter->is_valid() && filter->get_length() > 0) {
                 if (QString(filter->get(kShotcutFilterProperty)).startsWith("fadeIn")
-                        || QString(filter->get("mlt_service")) == "webvfx") {
+                        || QString(filter->get("mlt_service")).contains("webvfx")) {
                     filter->set_in_and_out(in, in + filter->get_length() - 1);
                 }
             }
@@ -790,13 +793,16 @@ int MultitrackModel::trimClipOut(int trackIndex, int clipIndex, int delta, bool 
         int out = info->frame_out - delta;
         playlist.resize_clip(clipIndex, in, out);
 
+        info->producer->set(kFilterInProperty, in);
+        info->producer->set(kFilterOutProperty, out);
+
         // Adjust all filters that have an explicit duration.
         int n = info->producer->filter_count();
         for (int j = 0; j < n; j++) {
             Mlt::Filter* filter = info->producer->filter(j);
             if (filter && filter->is_valid() && filter->get_length() > 0) {
                 if (QString(filter->get(kShotcutFilterProperty)).startsWith("fadeOut")
-                        || QString(filter->get("mlt_service")) == "webvfx") {
+                        || QString(filter->get("mlt_service")).contains("webvfx")) {
                     filter->set_in_and_out(out - filter->get_length() + 1, out);
                 }
             }
@@ -1501,6 +1507,9 @@ void MultitrackModel::removeClip(int trackIndex, int clipIndex)
                 }
             }
             emit modified();
+
+            // 删除后不选中任何 clip
+            setSelection(trackIndex, -1);
         }
     }
 }
@@ -1539,6 +1548,9 @@ void MultitrackModel::liftClip(int trackIndex, int clipIndex)
             consolidateBlanks(playlist, trackIndex);
 
             emit modified();
+
+            // 删除后不选中任何 clip
+            setSelection(trackIndex, -1);
         }
     }
 }
@@ -2198,6 +2210,9 @@ void MultitrackModel::removeTransition(int trackIndex, int clipIndex)
         roles << DurationRole;
         emit dataChanged(modelIndex, modelIndex, roles);
         emit modified();
+
+        // 删除后不选中任何 clip
+        setSelection(trackIndex, -1);
     }
 }
 
